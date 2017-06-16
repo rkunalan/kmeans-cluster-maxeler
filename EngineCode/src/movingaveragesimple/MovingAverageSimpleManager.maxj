@@ -1,0 +1,37 @@
+/**
+ * MaxFile name: MovingAverageSimple
+ * 
+ * k-means algorithm is a method of cluster analysis in data mining. 
+ * k-means clustering aims to partition n observations into k clusters. 
+ * each observation belongs to the cluster with the nearest center point of the class. 
+ * 
+ * Implementation:
+ * Calculates a given point belongs to each of the given classes.
+ *
+ * A point belongs to a class if it lies within its radius.
+ * In order to check that, a point lies within the radius of the class
+ * Calculate the Euclidean distance between the point and the centre of the class
+ * The point would lie within the class if that distance is less than the radius of the class.
+ */
+ 
+package movingaveragesimple;
+
+import com.maxeler.maxcompiler.v2.build.EngineParameters;
+import com.maxeler.maxcompiler.v2.kernelcompiler.Kernel;
+import com.maxeler.maxcompiler.v2.managers.standard.Manager;
+import com.maxeler.maxcompiler.v2.managers.standard.Manager.IOType;
+
+class MovingAverageSimpleManager {
+	public static void main(String[] args) {
+		EngineParameters params = new EngineParameters(args);
+		Manager manager = new Manager(params);
+
+		// Instantiate the kernel
+		Kernel kernel = new MovingAverageSimpleKernel(manager.makeKernelParameters());
+
+		manager.setKernel(kernel);
+		manager.setIO(IOType.ALL_CPU); // Connect all kernel ports to the CPU
+		manager.createSLiCinterface();
+		manager.build();
+	}
+}

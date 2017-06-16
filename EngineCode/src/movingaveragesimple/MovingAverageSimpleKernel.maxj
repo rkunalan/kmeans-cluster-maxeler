@@ -1,0 +1,87 @@
+/**
+ * MaxFile name: MovingAverageSimple
+ * 
+ * k-means algorithm is a method of cluster analysis in data mining. 
+ * k-means clustering aims to partition n observations into k clusters. 
+ * each observation belongs to the cluster with the nearest center point of the class. 
+ * 
+ * Implementation:
+ * Calculates a given point belongs to each of the given classes.
+ *
+ * A point belongs to a class if it lies within its radius.
+ * In order to check that, a point lies within the radius of the class
+ * Calculate the Euclidean distance between the point and the centre of the class
+ * The point would lie within the class if that distance is less than the radius of the class.
+ */
+
+package movingaveragesimple;
+
+import com.maxeler.maxcompiler.v2.kernelcompiler.Kernel;
+import com.maxeler.maxcompiler.v2.kernelcompiler.KernelParameters;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.DFEType;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.DFEVar;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.composite.DFEVector;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.composite.DFEVectorType;
+import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.core.Count;
+import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.core.Count.Counter;
+
+class MovingAverageSimpleKernel extends Kernel {
+    
+    private static final DFEType type = dfeFloat(8,24);
+    DFEVar zero = constant.var(type, 0.0);
+
+	MovingAverageSimpleKernel(KernelParameters parameters) {
+		super(parameters);
+		
+		// initial values
+		int DIM = 4;
+    	int CLASSES = 8;
+    	int POINTS = 128;
+
+        // initialize custom vector types
+        DFEVectorType<DFEVar> center_class_vector_type = new DFEVectorType<DFEVar>(type, DIM*CLASSES);
+        DFEVectorType<DFEVar> square_radius_vector_ype	= new DFEVectorType<DFEVar>(type, CLASSES);
+        DFEVectorType<DFEVar> data_array_vector_ype = new DFEVectorType<DFEVar>(type, DIM*POINTS);
+        
+        // initialize complex counter that counts up until every data point from the matrix
+        Count.Params count_params = control.count.makeParams(CLASSES/DIM)
+        	                        .withMax((CLASSES)/(DIM*2));
+        Counter counter = control.count.makeCounter(count_params);
+        DFEVar counter_val = counter.getCount();
+
+        // inputs of input data points, class center points and square radiuses
+        DFEVector<DFEVar> center_class = io.input("kernal_center_classes", 
+                                                center_class_vector_type, counter_val === 0);
+        DFEVector<DFEVar> square_radius = io.input("kernal_square_radiuses", 
+                                                    square_radius_vector_ype);
+        DFEVector<DFEVar> data_point = io.input("kernal_data_points", 
+                                                data_array_vector_ype);
+
+        // initialize array for Euclidean distances
+        DFEVector<DFEVar> dist = square_radius_vector_ype.newInstance(this);
+        // initialize output array
+        DFEVector<DFEVar> kmean_output = square_radius_vector_ype.newInstance(this);
+
+	    // calculate the sum of each row of squared differences
+		DFEVar row_sum = type.newInstance(this);
+	    for(int i = 0 ; i < CLASSES ; i++) {
+	     	row_sum = zero;
+		    for (int j=0; j<DIM; j++) {
+				// calculate the squared difference between each data point
+		    	row_sum += (center_class[j]-data_point[j + DIM*i])
+		    	            *(center_class[j]-data_point[j + DIM*i]);
+		    }
+		    dist[i] <== row_sum;
+	    }
+
+		DFEVar section = counter_val.cast(type);
+		// if the distance squared is less than the cluster radius squared,
+		// update output with the index, if not, -1
+		for(int i = 0 ; i < CLASSES ; i++) {
+			kmean_output[i] <== dist[i] < square_radius[i] ? section*CLASSES + i : -1;
+		}
+
+		io.output("kernal_output", kmean_output, square_radius_vector_ype);
+		
+	}
+}
